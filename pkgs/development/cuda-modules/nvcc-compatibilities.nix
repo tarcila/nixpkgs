@@ -98,11 +98,16 @@ let
     # No changes from 12.2 to 12.3
     "12.3" = attrs."12.2";
 
-    # No changes from 12.2 to 12.3
+    # Sets maximum and minimum GCC versions
+    # https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#id3
     "12.4" = attrs."12.3" // {
       clangMaxMajorVersion = "17";
       gccMaxMajorVersion = "13";
+      gccMinMajorVersion = "7";
+      gccMinMinorVersion = "3";
     };
+
+    "12.6" = attrs."12.4";
   };
 in
 attrs
