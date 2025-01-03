@@ -155,8 +155,11 @@ filterAndCreateOverrides {
   cuda_gdb =
     {
       cudaAtLeast,
+      ncurses,
       gmp,
       expat,
+      libgcrypt,
+      python312Packages,
       stdenv,
       lib,
     }:
@@ -166,7 +169,23 @@ filterAndCreateOverrides {
         # x86_64 only needs gmp from 12.0 and on
         ++ lib.lists.optionals (cudaAtLeast "12.0") [ gmp ]
         # aarch64,sbsa needs expat
-        ++ lib.lists.optionals (stdenv.hostPlatform.isAarch64) [ expat ];
+        ++ lib.lists.optionals (stdenv.hostPlatform.isAarch64) [ expat ]
+        ++ lib.lists.optionals (cudaAtLeast "12.6") [ libgcrypt ncurses python312Packages.python ];
+      
+      # Keep only python 3.12 versions
+      env.rmPatterns = toString [
+        "bin/*python3.8*"
+        "bin/*python3.9*"
+        "bin/*python3.10*"
+        "bin/*python3.11*"
+      ];
+      postPatch =
+        prevAttrs.postPatch or ""
+        + ''
+          for path in $rmPatterns; do
+            rm -r "$path"
+          done
+        '';
     };
 
   cuda_nvcc =
@@ -199,11 +218,13 @@ filterAndCreateOverrides {
         + ''
           substituteInPlace bin/nvcc.profile \
             --replace-fail \
-              '$(TOP)/$(_NVVM_BRANCH_)' \
-              "''${!outputBin}/nvvm" \
-            --replace-fail \
               '$(TOP)/$(_TARGET_DIR_)/include' \
               "''${!outputDev}/include"
+
+          substituteInPlace bin/nvcc.profile \
+            --replace \
+              '$(TOP)/$(_NVVM_BRANCH_)' \
+              "''${!outputBin}/nvvm"
 
           cat << EOF >> bin/nvcc.profile
 
