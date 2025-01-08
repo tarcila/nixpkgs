@@ -76,6 +76,17 @@ setupCUDAToolkitCompilers() {
     appendToVar cmakeFlags "-DCUDA_HOST_COMPILER=@ccFullPath@"
     appendToVar cmakeFlags "-DCMAKE_CUDA_HOST_COMPILER=@ccFullPath@"
 
+    # Remove some unwanted additional to what CMake detects has implicit library path.
+    paths="$("@ccFullPath@" -E -v /dev/null |& grep LIBRARY_PATH | cut -f2 -d"=")"
+    IFS=: read -r -a paths <<< "${paths}"
+    export CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES_EXCLUDE
+    for p in "${paths[@]}"; do
+        p=$(realpath "${p}")
+        if [ $? == 0 ]; then
+            CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES_EXCLUDE="$(realpath ${p})${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES_EXCLUDE:+;${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES_EXCLUDE}}"
+        fi
+    done
+
     # For non-CMake projects:
     # We prepend --compiler-bindir to nvcc flags.
     # Downstream packages can override these, because NVCC
